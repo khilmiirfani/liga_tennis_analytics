@@ -59,14 +59,14 @@ SELECT
     WHEN DATEDIFF(cb.`date`, DATE(cb.created_at)) BETWEEN 22 AND 30 THEN '1 Month Before'
     WHEN DATEDIFF(cb.`date`, DATE(cb.created_at)) > 30 THEN '> 1 Month Before'
     ELSE 'Unknown' -- Handles potential negative dates if data is messy
-  END AS lead_time_category,
+  END AS lead_time_category
 
 FROM court_bookings cb
 LEFT JOIN courts c            ON cb.court_id = c.court_id  -- or c.id depending on your schema key
 LEFT JOIN V_DETAIL_VENUES vdv ON cb.court_id = vdv.BOOKING_COURT_ID 
-WHERE cb.deleted_at IS NULL
-  AND vdv.item_id IS NOT NULL
-
+WHERE vdv.item_id IS NOT NULL
+  AND cb.deleted_at IS NULL
+  
 
 
 ============================================================================================================
