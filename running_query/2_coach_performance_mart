@@ -1,0 +1,61 @@
+CREATE OR REPLACE VIEW mart_coach_performance AS
+SELECT 
+    -- Dimensions
+    COALESCE(s.schedule_date, b.booking_date) AS `date`,
+    COALESCE(s.coach_id, b.coach_id) AS coach_id,
+    cc.name AS coach_name,
+    v.title AS branch_name,
+    
+    -- Productivity Metrics
+    COALESCE(s.total_scheduled_hours, 0) AS scheduled_hours,
+    COALESCE(b.billable_hours, 0) AS billable_hours,
+    
+    -- Utilization % (Handle division by zero)
+    CASE 
+        WHEN COALESCE(s.total_scheduled_hours, 0) > 0 
+        THEN (COALESCE(b.billable_hours, 0) / s.total_scheduled_hours) * 100 
+        ELSE 0 
+    END AS coach_utilization_pct,
+    
+    -- Client Metrics
+    COALESCE(b.total_sessions, 0) AS total_sessions,
+    COALESCE(b.unique_clients, 0) AS unique_clients,  -- FIXED: was unique_clients_daily
+    
+    -- Upsell Metrics
+    COALESCE(u.upsell_orders, 0) AS products_sold_same_day,
+    COALESCE(u.upsell_revenue, 0) AS products_revenue_attributed
+
+FROM 2_coach_schedule_hours s
+LEFT JOIN 2_coach_booking_metrics b 
+    ON s.coach_id = b.coach_id AND s.schedule_date = b.booking_date
+LEFT JOIN 2_coach_upsell_metrics u 
+    ON s.coach_id = u.coach_id AND s.schedule_date = u.txn_date
+LEFT JOIN court_coaches cc 
+    ON COALESCE(s.coach_id, b.coach_id) = cc.id
+LEFT JOIN v_venues v 
+    ON cc.court_id = v.item_id
+
+UNION 
+-- Ensure we capture bookings even if there was no schedule (rare edge case)
+SELECT 
+    b.booking_date AS `date`,
+    b.coach_id,
+    cc.name AS coach_name,
+    v.title AS branch_name,
+    0 AS scheduled_hours,
+    b.billable_hours,
+    0 AS coach_utilization_pct,
+    b.total_sessions,
+    b.unique_clients,  -- FIXED: was unique_clients_daily
+    COALESCE(u.upsell_orders, 0),
+    COALESCE(u.upsell_revenue, 0)
+FROM 2_coach_booking_metrics b
+LEFT JOIN 2_coach_schedule_hours s 
+    ON b.coach_id = s.coach_id AND b.booking_date = s.schedule_date
+LEFT JOIN 2_coach_upsell_metrics u 
+    ON b.coach_id = u.coach_id AND b.booking_date = u.txn_date
+LEFT JOIN court_coaches cc 
+    ON b.coach_id = cc.id
+LEFT JOIN v_venues v 
+    ON cc.court_id = v.item_id
+WHERE s.coach_id IS NULL;
