@@ -1,0 +1,35 @@
+SELECT 
+    'Schedule Block' AS record_type,
+    ccs.id AS record_id,
+    ccs.date,
+    ccs.time_from,
+    ccs.time_to,
+    ccs.type AS status_type,
+    NULL AS payment_status,
+    (GREATEST(0, TIMESTAMPDIFF(MINUTE, 
+        STR_TO_DATE(CONCAT(ccs.date,' ',ccs.time_from), '%Y-%m-%d %H:%i'), 
+        STR_TO_DATE(CONCAT(ccs.date,' ',ccs.time_to),   '%Y-%m-%d %H:%i')
+    )) / 60.0) AS hours_duration
+FROM court_coaches_schedule ccs
+WHERE ccs.coach_id = 296 
+  AND ccs.date IN ('2025-04-18', '2025-04-19')
+
+UNION ALL
+
+SELECT 
+    'Actual Booking' AS record_type,
+    cb.id AS record_id,
+    cb.date,
+    cb.time_from,
+    cb.time_to,
+    cb.type AS status_type, -- Booking type (e.g., coach, standard)
+    cb.payment_status,
+    (GREATEST(0, TIMESTAMPDIFF(MINUTE, 
+        STR_TO_DATE(CONCAT(cb.date,' ',cb.time_from), '%Y-%m-%d %H:%i'), 
+        STR_TO_DATE(CONCAT(cb.date,' ',cb.time_to),   '%Y-%m-%d %H:%i')
+    )) / 60.0) AS hours_duration
+FROM court_bookings cb
+WHERE cb.coach_id = 296 
+  AND cb.date IN ('2025-04-18', '2025-04-19')
+  AND cb.deleted_at IS NULL
+ORDER BY date, time_from;

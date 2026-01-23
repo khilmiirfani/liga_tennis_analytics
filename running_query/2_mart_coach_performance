@@ -1,0 +1,121 @@
+CREATE OR REPLACE VIEW mart_coach_performance AS
+SELECT 
+    -- Date & Coach Dimensions
+    COALESCE(s.schedule_date, b.booking_date) AS `date`,
+    COALESCE(s.coach_id, b.coach_id) AS coach_id,
+    cc.name AS coach_name,
+    cct.title AS type_coach,
+    cct.price AS price, -- Base hourly rate
+    
+    -- Location Info
+    cc.court_id,
+    v.court_title AS court_name,
+    v.title AS branch_name,
+    
+    -- Productivity Metrics
+    COALESCE(s.total_scheduled_hours, 0) AS scheduled_hours,
+    COALESCE(b.billable_hours, 0) AS billable_hours,
+    
+    -- Total Hours & Price (REVISED REVENUE FORMULA)
+    COALESCE(b.billable_hours, 0) AS total_hours_booked,
+    
+    -- REVISED: Revenue = Billable Hours * Coach Base Price
+    (COALESCE(b.billable_hours, 0) * COALESCE(cct.price, 0)) AS total_price,
+    
+    -- Utilization %
+    CASE 
+        WHEN COALESCE(s.total_scheduled_hours, 0) > 0 
+        THEN (COALESCE(b.billable_hours, 0) / s.total_scheduled_hours) * 100 
+        ELSE 0 
+    END AS coach_utilization_pct,
+    
+    -- Client Metrics
+    COALESCE(b.total_sessions, 0) AS total_sessions,
+    COALESCE(b.unique_clients, 0) AS unique_clients,
+    
+    -- Upsell Metrics
+    COALESCE(u.upsell_orders, 0) AS products_sold_same_day,
+    COALESCE(u.upsell_revenue, 0) AS products_revenue_attributed
+
+FROM 2_coach_schedule_hours s
+
+-- 1. Join Booking Metrics (Removed internal price sum)
+LEFT JOIN (
+    SELECT 
+        coach_id, 
+        court_id, 
+        `date` AS booking_date,
+        COUNT(DISTINCT id) AS total_sessions,
+        COUNT(DISTINCT user_id) AS unique_clients,
+        -- Calculate total duration (billable hours)
+        SUM(GREATEST(0, TIMESTAMPDIFF(MINUTE, 
+            STR_TO_DATE(CONCAT(`date`,' ',time_from), '%Y-%m-%d %H:%i'), 
+            STR_TO_DATE(CONCAT(`date`,' ',time_to),   '%Y-%m-%d %H:%i')
+        )) / 60.0) AS billable_hours
+    FROM court_bookings
+    WHERE payment_status = 'paid' AND deleted_at IS NULL
+    GROUP BY coach_id, court_id, `date`
+) b ON s.coach_id = b.coach_id AND s.schedule_date = b.booking_date
+
+-- 2. Join Upsell Metrics
+LEFT JOIN 2_coach_upsell_metrics u 
+    ON s.coach_id = u.coach_id AND s.schedule_date = u.txn_date
+
+-- 3. Join Coach Profile
+LEFT JOIN court_coaches cc 
+    ON COALESCE(s.coach_id, b.coach_id) = cc.id
+
+-- 4. Join Coach Type (Crucial for Price)
+LEFT JOIN court_coaches_types cct 
+    ON cc.type_id = cct.id
+
+-- 5. Join Location Details
+LEFT JOIN V_DETAIL_VENUES v 
+    ON cc.court_id = v.item_id
+
+UNION 
+
+-- Handle Bookings without Schedule (Union part)
+SELECT 
+    b.booking_date AS `date`,
+    b.coach_id,
+    cc.name AS coach_name,
+    cct.title AS type_coach,
+    cct.price AS price,
+    cc.court_id,
+    v.court_title AS court_name,
+    v.title AS branch_name,
+    0 AS scheduled_hours,
+    b.billable_hours,
+    b.billable_hours AS total_hours_booked,
+    -- REVISED: Revenue = Billable Hours * Coach Base Price
+    (b.billable_hours * COALESCE(cct.price, 0)) AS total_price,
+    0 AS coach_utilization_pct,
+    b.total_sessions,
+    b.unique_clients,
+    COALESCE(u.upsell_orders, 0),
+    COALESCE(u.upsell_revenue, 0)
+FROM (
+    SELECT 
+        coach_id, court_id, `date` AS booking_date,
+        COUNT(DISTINCT id) AS total_sessions,
+        COUNT(DISTINCT user_id) AS unique_clients,
+        SUM(GREATEST(0, TIMESTAMPDIFF(MINUTE, 
+            STR_TO_DATE(CONCAT(`date`,' ',time_from), '%Y-%m-%d %H:%i'), 
+            STR_TO_DATE(CONCAT(`date`,' ',time_to),   '%Y-%m-%d %H:%i')
+        )) / 60.0) AS billable_hours
+    FROM court_bookings
+    WHERE payment_status = 'paid' AND deleted_at IS NULL
+    GROUP BY coach_id, court_id, `date`
+) b
+LEFT JOIN 2_coach_schedule_hours s 
+    ON b.coach_id = s.coach_id AND b.booking_date = s.schedule_date
+LEFT JOIN 2_coach_upsell_metrics u 
+    ON b.coach_id = u.coach_id AND b.booking_date = u.txn_date
+LEFT JOIN court_coaches cc 
+    ON b.coach_id = cc.id
+LEFT JOIN court_coaches_types cct 
+    ON cc.type_id = cct.id
+LEFT JOIN V_DETAIL_VENUES v 
+    ON cc.court_id = v.item_id
+WHERE s.coach_id IS NULL;
