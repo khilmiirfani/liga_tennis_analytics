@@ -2,6 +2,8 @@ CREATE OR REPLACE VIEW 2_coach_revenue_per_booking_id AS (
 SELECT 
     a.`date`,
     a.id AS booking_id,
+    e.title AS branch_name,
+    e.court_title AS court_name,
     a.court_id,
     a.coach_id,
     b.coach_name,
@@ -40,6 +42,7 @@ LEFT JOIN 2_coach_price b
 -- Join with Discount Table
 LEFT JOIN court_discounts   c     ON a.discount_id = c.id
 LEFT JOIN v_detail_venues   d     ON a.court_id = d.booking_court_id
+LEFT JOIN v_detail_venues   e     ON a.court_id = e.booking_court_id
 WHERE a.payment_status ='paid'
 AND YEAR(a.`date`) IN (YEAR(CURDATE()), YEAR(CURDATE()) - 1, YEAR(CURDATE()) - 2)
  -- filter the date for last 3 years
