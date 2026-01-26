@@ -1,4 +1,4 @@
-CREATE OR REPLACE VIEW mart_coach_performance AS
+CREATE OR REPLACE VIEW 2_coach_performance AS
 SELECT 
     -- Date & Coach Dimensions
     COALESCE(s.schedule_date, b.booking_date) AS `date`,

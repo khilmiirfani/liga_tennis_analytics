@@ -1,3 +1,4 @@
+CREATE OR REPLACE VIEW `2_coach_revenues` AS
 WITH revenue_data AS (
     -- 1. Get Revenue Details (Detail Level)
     SELECT 
