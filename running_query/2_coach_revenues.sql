@@ -1,3 +1,4 @@
+
 CREATE OR REPLACE VIEW `2_coach_revenues` AS
 WITH revenue_aggregated AS (
     -- 2. Group Revenue by Date/Coach
@@ -17,7 +18,7 @@ schedule_aggregated AS (
     SELECT 
         `date`,
         coach_id,
-        total_scheduled_hours
+        SUM(total_scheduled_hours) AS total_scheduled_hours
     FROM 2_coach_schedule_per_day
     GROUP BY coach_id, `date`
 )
@@ -34,4 +35,6 @@ SELECT
 FROM revenue_aggregated r
 LEFT JOIN schedule_aggregated s 
     ON r.coach_id = s.coach_id 
-    AND r.`date` = s.`date`;
+    AND r.`date` = s.`date`
+WHERE YEAR(r.`date`) IN (YEAR(CURDATE()), YEAR(CURDATE()) - 1, YEAR(CURDATE()) - 2)
+

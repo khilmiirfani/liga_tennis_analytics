@@ -1,8 +1,8 @@
-CREATE OR REPLACE VIEW 2_coach_schedule_hours AS
+CREATE OR REPLACE VIEW 2_coach_schedule_per_day AS
 SELECT 
+    `date`,
     coach_id,
     court_id,
-    `date` AS schedule_date,
     -- Calculate scheduled duration in hours
     SUM(
         GREATEST(0, TIMESTAMPDIFF(MINUTE, 
