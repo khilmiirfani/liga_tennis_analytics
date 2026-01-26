@@ -1,4 +1,4 @@
-CREATE OR REPLACE VIEW 2_coach_revenues AS (
+CREATE OR REPLACE VIEW 2_coach_revenue_per_booking_id AS (
 SELECT 
     a.`date`,
     a.id AS booking_id,
@@ -40,9 +40,11 @@ LEFT JOIN 2_coach_price b
 -- Join with Discount Table
 LEFT JOIN court_discounts   c     ON a.discount_id = c.id
 LEFT JOIN v_detail_venues   d     ON a.court_id = d.booking_court_id
-WHERE a.`date` > '2026-01-01'
-AND a.payment_status ='paid'
-AND a.coach_id IS NOT NULL
+WHERE a.payment_status ='paid'
+AND YEAR(a.`date`) IN (YEAR(CURDATE()), YEAR(CURDATE()) - 1, YEAR(CURDATE()) - 2)
+ -- filter the date for last 3 years
+-- AND a.`date` > '2026-01-01' -- filter the date for testing
+-- AND a.coach_id IS NOT NULL -- Removed to include all bookings
 ORDER BY a.date desc
 )
 

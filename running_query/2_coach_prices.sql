@@ -1,14 +1,45 @@
-CREATE OR REPLACE VIEW 2_coach_price AS (
-SELECT 
-    a.id AS coach_id,
-    a.name AS coach_name,
-    a.type_id AS type_id,
-    b.title AS coach_type,
-    a.court_id AS court_id_coach,    -- Renamed for clarity (court_id from table A)
-    b.court_id AS court_id_type,     -- Renamed for clarity (court_id from table B)
-    b.title AS type_title,
-    b.price AS price
-FROM court_coaches a
-LEFT JOIN court_coaches_types b 
-    ON a.court_id = b.court_id
+CREATE OR REPLACE VIEW `2_coach_price` AS
+WITH coach_type_std AS (
+  -- A) main type_id (always 1 row per coach)
+  SELECT
+    c.id AS coach_id,
+    c.name AS coach_name,
+    c.court_id AS court_id_coach,
+    CAST(c.type_id AS UNSIGNED) AS coach_type_id
+  FROM court_coaches c
+
+  UNION ALL
+
+  -- B) additional_type_id array -> rows (0..N rows per coach)
+  SELECT
+    c.id AS coach_id,
+    c.name AS coach_name,
+    c.court_id AS court_id_coach,
+    CAST(jt.type_id AS UNSIGNED) AS coach_type_id
+  FROM court_coaches c
+  JOIN JSON_TABLE(
+        c.additional_type_id,
+        '$[*]' COLUMNS (
+          type_id VARCHAR(50) PATH '$'
+        )
+      ) jt
+  WHERE c.additional_type_id IS NOT NULL
+    AND JSON_VALID(c.additional_type_id)
+),
+coach_type_std_distinct AS (
+  -- Optional: remove duplicates (in case additional list repeats the main type)
+  SELECT DISTINCT
+    coach_id, coach_name, court_id_coach, coach_type_id
+  FROM coach_type_std
 )
+SELECT
+  s.coach_id,
+  s.coach_name,
+  s.court_id_coach,
+  s.coach_type_id as type_id,
+  t.title AS coach_type,
+  t.court_id AS court_id_type,
+  t.price
+FROM coach_type_std_distinct s
+LEFT JOIN court_coaches_types t
+  ON t.id = s.coach_type_id;
