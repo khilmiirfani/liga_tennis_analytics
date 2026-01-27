@@ -1,3 +1,4 @@
+CREATE OR REPLACE VIEW 1_court_utilization AS
 WITH 
 -- 1. Get Actual Booked Hours (Summed by Court + Day)
 actual_usage AS (
@@ -33,6 +34,9 @@ potential_capacity AS (
 -- 3. Final Calculation
 SELECT 
     p.court_id,
+    vdv.title AS branch_name,
+    vdv.court_title AS court_name,
+    vdv.sport_title AS sport_type,
     p.day_name,
     
     -- Capacity Logic
@@ -53,5 +57,6 @@ FROM potential_capacity p
 LEFT JOIN actual_usage a 
     ON p.court_id = a.court_id 
     AND p.day_name = a.day_name
-
+LEFT JOIN V_DETAIL_VENUES vdv ON p.court_id = vdv.BOOKING_COURT_ID
+WHERE vdv.item_id IS NOT NULL
 ORDER BY p.court_id, FIELD(p.day_name, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday');

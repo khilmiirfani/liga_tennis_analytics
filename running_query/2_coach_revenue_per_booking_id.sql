@@ -44,6 +44,7 @@ LEFT JOIN court_discounts   c     ON a.discount_id = c.id
 LEFT JOIN v_detail_venues   d     ON a.court_id = d.booking_court_id
 LEFT JOIN v_detail_venues   e     ON a.court_id = e.booking_court_id
 WHERE a.payment_status ='paid'
+AND e.item_id IS NOT NULL
 AND YEAR(a.`date`) IN (YEAR(CURDATE()), YEAR(CURDATE()) - 1, YEAR(CURDATE()) - 2)
  -- filter the date for last 3 years
 -- AND a.`date` > '2026-01-01' -- filter the date for testing

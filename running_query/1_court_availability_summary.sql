@@ -1,4 +1,4 @@
-CREATE OR REPLACE VIEW v_court_availability_summary AS
+CREATE OR REPLACE VIEW 1_court_availability_summary AS
 SELECT 
     a.item_id AS court_id,
     
