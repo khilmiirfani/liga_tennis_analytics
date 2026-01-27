@@ -1,3 +1,8 @@
+-- ================================================================
+-- 1. Detail Venues:
+-- This view enriches court bookings with venue and sport type details.
+-- ================================================================
+DROP VIEW IF EXISTS v_detail_venues;
 CREATE OR REPLACE VIEW v_detail_venues AS 
 SELECT 
     a.title, 

@@ -1,3 +1,8 @@
+--- ================================================================
+-- 9. Coach Client Retention
+-- Identifies repeat clients per coach
+--- ================================================================
+DROP VIEW IF EXISTS 2_coach_client_retention;
 CREATE OR REPLACE VIEW 2_coach_client_retention AS
 SELECT 
     a.coach_id,
@@ -16,4 +21,4 @@ WHERE a.coach_id IS NOT NULL
   AND a.payment_status = 'paid'     -- filter only paid sessions
   AND a.user_id IS NOT NULL         -- filter only valid users
   AND ( a.coach_id IS NOT NULL AND a.coach_id != '0' ) -- filter only valid coaches
-GROUP BY a.coach_id, b.name, a.user_id, c.first_name, c.last_name --group by coach and user to get lifetime sessions per user per coach
+GROUP BY a.coach_id, b.name, a.user_id, c.first_name, c.last_name; --group by coach and user to get lifetime sessions per user per coach

@@ -1,3 +1,8 @@
+-- ================================================================
+-- 7. Coach Schedule Per Day   
+-- Aggregates scheduled hours per coach/day
+-- ================================================================
+DROP VIEW IF EXISTS 2_coach_schedule_per_day;
 CREATE OR REPLACE VIEW 2_coach_schedule_per_day AS
 SELECT 
     `date`,

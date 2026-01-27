@@ -1,3 +1,8 @@
+-- ================================================================
+-- 5. Coach Price View
+-- Standardizes coach types and prices per court
+-- ================================================================
+DROP VIEW IF EXISTS `2_coach_price`;
 CREATE OR REPLACE VIEW `2_coach_price` AS
 WITH coach_type_std AS (
   -- A) main type_id (always 1 row per coach)

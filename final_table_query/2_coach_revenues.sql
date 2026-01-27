@@ -1,4 +1,8 @@
-
+--- ================================================================
+-- 8. Coach Revenues Summary
+-- Combines revenue and schedule per coach/day
+-- ================================================================
+DROP VIEW IF EXISTS `2_coach_revenues`
 CREATE OR REPLACE VIEW `2_coach_revenues` AS
 WITH revenue_aggregated AS (
     -- 2. Group Revenue by Date/Coach
@@ -36,5 +40,5 @@ FROM revenue_aggregated r
 LEFT JOIN schedule_aggregated s 
     ON r.coach_id = s.coach_id 
     AND r.`date` = s.`date`
-WHERE YEAR(r.`date`) IN (YEAR(CURDATE()), YEAR(CURDATE()) - 1, YEAR(CURDATE()) - 2)
+WHERE YEAR(r.`date`) IN (YEAR(CURDATE()), YEAR(CURDATE()) - 1, YEAR(CURDATE()) - 2);
 

@@ -1,3 +1,8 @@
+-- ================================================================
+-- 6. Coach Revenues Per Booking
+-- Joins bookings with coach prices to get revenue per booking
+-- ================================================================
+DROP VIEW IF EXISTS 2_coach_revenue_per_booking_id;
 CREATE OR REPLACE VIEW 2_coach_revenue_per_booking_id AS (
 SELECT 
     a.`date`,

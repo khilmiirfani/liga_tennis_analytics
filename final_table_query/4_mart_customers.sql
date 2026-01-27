@@ -1,4 +1,9 @@
-CREATE OR REPLACE VIEW mart_customer_retention AS
+--- ================================================================
+-- 9. Customer Mart
+-- Combines customer membership and booking activity for LTV and churn analysis
+--- ================================================================
+DROP VIEW IF EXISTS 4_mart_customer;
+CREATE OR REPLACE VIEW 4_mart_customer AS
 WITH user_activity AS (
     -- 1. Summarize Booking Behavior (Last Active Date & Spending)
     SELECT 

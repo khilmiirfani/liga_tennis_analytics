@@ -1,3 +1,8 @@
+-- ================================================================
+-- 2. Base View: Court Availability Summary
+-- Aggregates open hours per court/day
+-- ================================================================
+DROP VIEW IF EXISTS 1_court_availability_summary;
 CREATE OR REPLACE VIEW 1_court_availability_summary AS
 SELECT 
     a.item_id AS court_id,

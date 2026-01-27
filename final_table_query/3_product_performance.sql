@@ -1,3 +1,8 @@
+--- ================================================================
+-- 9. Product Performance
+-- Aggregates sales and inventory metrics for products: Packages, Events, Extras
+--- ================================================================
+DROP VIEW IF EXISTS 3_product_performance;
 CREATE OR REPLACE VIEW 3_product_performance AS
 SELECT 
     -- Dimensions
