@@ -1,4 +1,4 @@
-CREATE OR REPLACE VIEW v_bookings_base AS
+CREATE OR REPLACE VIEW 1_court_bookings_base AS
 SELECT
   cb.id AS booking_id,
   cb.court_id,
@@ -65,7 +65,9 @@ FROM court_bookings cb
 LEFT JOIN courts c            ON cb.court_id = c.court_id  -- or c.id depending on your schema key
 LEFT JOIN V_DETAIL_VENUES vdv ON cb.court_id = vdv.BOOKING_COURT_ID 
 WHERE vdv.item_id IS NOT NULL
-  AND cb.deleted_at IS NULL
+  AND YEAR(cb.`date`) IN (YEAR(CURDATE()), YEAR(CURDATE()) - 1, YEAR(CURDATE()) - 2)
+
+
   
 
 
