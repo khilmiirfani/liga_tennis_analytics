@@ -4,65 +4,63 @@
 -- ================================================================
 DROP VIEW IF EXISTS 1_court_utilization;
 CREATE OR REPLACE VIEW 1_court_utilization AS
-WITH 
--- 1. Get Actual Booked Hours (Summed by Court + Day)
-actual_usage AS (
-    SELECT 
-        court_id,
-        day_name, 
-        SUM(booked_hours) AS total_booked_hours,
-        COUNT(DISTINCT booking_date) AS number_of_days_recorded 
-        -- This count is CRITICAL. If you have 4 Mondays of data, you need to know that 
-        -- to compare against 4 * Monday Capacity, not 1 * Monday Capacity.
-    FROM 1_court_bookings_base
-    WHERE is_paid_fulfilled = 1  -- Only count valid bookings
-    GROUP BY court_id, day_name
-),
-
--- 2. Normalize Availability (Unpivot the wide columns into rows)
-potential_capacity AS (
-    SELECT court_id, 'Monday' AS day_name, monday_hours AS daily_capacity FROM 1_court_availability_summary
-    UNION ALL
-    SELECT court_id, 'Tuesday', tuesday_hours FROM 1_court_availability_summary
-    UNION ALL
-    SELECT court_id, 'Wednesday', wednesday_hours FROM 1_court_availability_summary
-    UNION ALL
-    SELECT court_id, 'Thursday', thursday_hours FROM 1_court_availability_summary
-    UNION ALL
-    SELECT court_id, 'Friday', friday_hours FROM 1_court_availability_summary
-    UNION ALL
-    SELECT court_id, 'Saturday', saturday_hours FROM 1_court_availability_summary
-    UNION ALL
-    SELECT court_id, 'Sunday', sunday_hours FROM 1_court_availability_summary
-)
-
--- 3. Final Calculation
 SELECT 
-    p.court_id,
-    vdv.title AS branch_name,
-    vdv.court_title AS court_name,
-    vdv.sport_title AS sport_type,
-    p.day_name,
-    
-    -- Capacity Logic
-    p.daily_capacity AS capacity_per_day,
-    COALESCE(a.number_of_days_recorded, 0) AS days_in_dataset,
-    (p.daily_capacity * COALESCE(a.number_of_days_recorded, 1)) AS total_potential_hours,
-    
-    -- Usage Logic
-    COALESCE(a.total_booked_hours, 0) AS total_booked_hours,
-    
-    -- Utilization %
-    CASE 
-        WHEN (p.daily_capacity * COALESCE(a.number_of_days_recorded, 1)) = 0 THEN 0
-        ELSE (COALESCE(a.total_booked_hours, 0) / (p.daily_capacity * COALESCE(a.number_of_days_recorded, 1))) * 100 
-    END AS utilization_percentage
+    -- 1. Date Dimensions (The "Sortable" Columns)
+    b.booking_date,
+    YEAR(b.booking_date) AS year_num,               -- 2026
+    QUARTER(b.booking_date) AS quarter_num,         -- 1 to 4
+    MONTH(b.booking_date) AS month_num,             -- 1 to 12
 
-FROM potential_capacity p
-LEFT JOIN actual_usage a 
-    ON p.court_id = a.court_id 
-    AND p.day_name = a.day_name
-LEFT JOIN V_DETAIL_VENUES vdv ON p.court_id = vdv.BOOKING_COURT_ID
-WHERE vdv.item_id IS NOT NULL
-ORDER BY p.court_id, FIELD(p.day_name, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday');
+    -- Day Sorting Logic (1=Mon, 7=Sun)
+    -- Standard WEEKDAY() returns 0=Mon...6=Sun. We add 1 to make it 1=Mon...7=Sun
+    WEEKDAY(b.booking_date) + 1 AS day_of_week_num, 
+    DAYNAME(b.booking_date) AS day_name,            -- 'Monday'
 
+    -- 2. Business Context
+    b.court_id,
+    b.branch_name,
+    b.court_name,
+    b.sport_type,
+
+    -- 3. Supply (Capacity)
+    MAX(CASE 
+        WHEN DAYNAME(b.booking_date) = 'Monday' THEN s.monday_hours
+        WHEN DAYNAME(b.booking_date) = 'Tuesday' THEN s.tuesday_hours
+        WHEN DAYNAME(b.booking_date) = 'Wednesday' THEN s.wednesday_hours
+        WHEN DAYNAME(b.booking_date) = 'Thursday' THEN s.thursday_hours
+        WHEN DAYNAME(b.booking_date) = 'Friday' THEN s.friday_hours
+        WHEN DAYNAME(b.booking_date) = 'Saturday' THEN s.saturday_hours
+        WHEN DAYNAME(b.booking_date) = 'Sunday' THEN s.sunday_hours
+        ELSE 0 
+    END) as daily_capacity_hours,
+
+    -- 4. Demand (Actual Usage)
+    SUM(b.booked_hours) as total_hours_sold,
+    SUM(b.gross_revenue) as daily_revenue,
+
+    -- 5. Utilization KPI
+    ROUND(
+        (SUM(b.booked_hours) / 
+        NULLIF(
+            MAX(CASE 
+                WHEN DAYNAME(b.booking_date) = 'Monday' THEN s.monday_hours
+                WHEN DAYNAME(b.booking_date) = 'Tuesday' THEN s.tuesday_hours
+                WHEN DAYNAME(b.booking_date) = 'Wednesday' THEN s.wednesday_hours
+                WHEN DAYNAME(b.booking_date) = 'Thursday' THEN s.thursday_hours
+                WHEN DAYNAME(b.booking_date) = 'Friday' THEN s.friday_hours
+                WHEN DAYNAME(b.booking_date) = 'Saturday' THEN s.saturday_hours
+                WHEN DAYNAME(b.booking_date) = 'Sunday' THEN s.sunday_hours
+                ELSE 0 
+            END), 0)
+        ) * 100, 
+    2) as utilization_pct
+
+FROM 1_court_bookings_base b
+LEFT JOIN `1_court_availability_summary` s ON b.court_id = s.court_id
+WHERE b.is_paid_fulfilled = 1 
+GROUP BY 
+    b.booking_date, 
+    b.court_id, 
+    b.branch_name, 
+    b.court_name, 
+    b.sport_type;

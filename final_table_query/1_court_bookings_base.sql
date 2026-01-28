@@ -56,13 +56,13 @@ SELECT
   CASE WHEN cb.canceled_at IS NOT NULL THEN 1 ELSE 0 END AS is_cancelled,
 
   CASE 
-    WHEN DATEDIFF(cb.`date`, DATE(cb.created_at)) <= 0 THEN 'Same Day'
-    WHEN DATEDIFF(cb.`date`, DATE(cb.created_at)) = 1  THEN 'Next Day'
-    WHEN DATEDIFF(cb.`date`, DATE(cb.created_at)) BETWEEN 2 AND 7 THEN '1 Week Before'
-    WHEN DATEDIFF(cb.`date`, DATE(cb.created_at)) BETWEEN 8 AND 14 THEN '2 Weeks Before'
-    WHEN DATEDIFF(cb.`date`, DATE(cb.created_at)) BETWEEN 15 AND 21 THEN '3 Weeks Before'
-    WHEN DATEDIFF(cb.`date`, DATE(cb.created_at)) BETWEEN 22 AND 30 THEN '1 Month Before'
-    WHEN DATEDIFF(cb.`date`, DATE(cb.created_at)) > 30 THEN '> 1 Month Before'
+    WHEN DATEDIFF(cb.`date`, DATE(cb.created_at)) <= 0 THEN 'b - Same Day'
+    WHEN DATEDIFF(cb.`date`, DATE(cb.created_at)) = 1  THEN 'a - Next Day'
+    WHEN DATEDIFF(cb.`date`, DATE(cb.created_at)) BETWEEN 2 AND 7 THEN 'c - 1 Week Before'
+    WHEN DATEDIFF(cb.`date`, DATE(cb.created_at)) BETWEEN 8 AND 14 THEN 'd - 2 Weeks Before'
+    WHEN DATEDIFF(cb.`date`, DATE(cb.created_at)) BETWEEN 15 AND 21 THEN 'e - 3 Weeks Before'
+    WHEN DATEDIFF(cb.`date`, DATE(cb.created_at)) BETWEEN 22 AND 30 THEN 'f - 1 Month Before'
+    WHEN DATEDIFF(cb.`date`, DATE(cb.created_at)) > 30 THEN 'g - > 1 Month Before'
     ELSE 'Unknown' -- Handles potential negative dates if data is messy
   END AS lead_time_category
 
